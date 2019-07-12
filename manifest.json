@@ -1,0 +1,14 @@
+{
+    "name": "Get Failed Tests",
+    "version": "1.0",
+    "description": "Get Failed Graphene Tests",
+    "manifest_version": 2,
+    "content_scripts": [
+        {
+            "matches": ["https://github.com/gooddata/*"],
+            "js": ["contentScript.js"],
+            "run_at": "document_idle"
+        }
+    ],
+    "permissions": ["activeTab"]
+}
