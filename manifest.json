@@ -5,7 +5,7 @@
     "manifest_version": 2,
     "content_scripts": [
         {
-            "matches": ["https://github.com/gooddata/*"],
+            "matches": ["https://github.com/gooddata/*/pull/*"],
             "js": ["contentScript.js"],
             "run_at": "document_idle"
         }

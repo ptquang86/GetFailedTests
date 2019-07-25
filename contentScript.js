@@ -4,6 +4,8 @@
 
 'use strict';
 
+const FAILED_TYPES = ['UNSTABLE', 'FAILED', 'ABORT'];
+
 function getTable(e) {
     let table = e.target;
     while (table && table.tagName !== 'TABLE') {
@@ -18,7 +20,7 @@ function getFailedTests(table) {
     for (let index = 0; index < children.length; index++) {
         const columns = children.item(index).children;
         // 0: name, 1: status
-        if (columns.item(1).textContent === 'UNSTABLE') {
+        if (FAILED_TYPES.indexOf(columns.item(1).textContent) !== -1) {
             failedTests.push(columns.item(0).textContent);
         }
     }
@@ -70,5 +72,5 @@ document.body.addEventListener('click', e => {
         failedSuite = failedSuite.substr(0, failedSuite.indexOf(' - filter '));
     }
 
-    console.log(failedSuite + ' - filter ' + failedTests);
+    document.getElementById('new_comment_field').value = failedSuite + ' - filter ' + failedTests;
 });
