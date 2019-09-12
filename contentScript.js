@@ -36,7 +36,20 @@ function getTimelineItem(table) {
     ) {
         timelineItem = timelineItem.parentElement;
     }
-    return timelineItem.previousElementSibling;
+
+    let previousTimelineItem = timelineItem.previousElementSibling;
+    while (
+        previousTimelineItem &&
+        (previousTimelineItem.children[0].className !==
+            'timeline-comment-wrapper js-comment-container' ||
+            !previousTimelineItem.querySelector(
+                'div.timeline-comment.current-user > div.timeline-comment-header > span'
+            ))
+    ) {
+        previousTimelineItem = previousTimelineItem.previousElementSibling;
+    }
+
+    return previousTimelineItem;
 }
 
 function getFailedSuite(timelineItem) {
@@ -72,5 +85,6 @@ document.body.addEventListener('click', e => {
         failedSuite = failedSuite.substr(0, failedSuite.indexOf(' - filter '));
     }
 
-    document.getElementById('new_comment_field').value = failedSuite + ' - filter ' + failedTests;
+    document.getElementById('new_comment_field').value =
+        failedSuite + ' - filter ' + failedTests;
 });
