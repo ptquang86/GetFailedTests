@@ -4,7 +4,7 @@
 
 'use strict';
 
-const FAILED_TYPES = ['UNSTABLE', 'FAILED', 'ABORT'];
+const FAILED_TYPES = ['UNSTABLE', 'FAILED', 'ABORTED'];
 
 function getTable(e) {
     let table = e.target;
