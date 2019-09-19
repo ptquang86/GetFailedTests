@@ -6,6 +6,15 @@
 
 const FAILED_TYPES = ['UNSTABLE', 'FAILED', 'ABORTED'];
 
+const TIMELINE_ITEM =
+    'js-timeline-item js-timeline-progressive-focus-container';
+const TIMELINE_ITEM_AUTHOR =
+    'div.timeline-comment.current-user > div.timeline-comment-header > span';
+const TIMELINE_ITEM_FIRST_CHILD = 'TimelineItem js-comment-container';
+const TIMELINE_ITEM_TEST_SUITE =
+    'div.unminimized-comment > div.edit-comment-hide > task-lists > table';
+const TIMELINE_ITEM_TEST_SUITE_CONTENT = 'tbody > tr > td > p';
+
 function getTable(e) {
     let table = e.target;
     while (table && table.tagName !== 'TABLE') {
@@ -29,11 +38,7 @@ function getFailedTests(table) {
 
 function getTimelineItem(table) {
     let timelineItem = table.parentElement;
-    while (
-        timelineItem &&
-        timelineItem.className !==
-            'js-timeline-item js-timeline-progressive-focus-container'
-    ) {
+    while (timelineItem && timelineItem.className !== TIMELINE_ITEM) {
         timelineItem = timelineItem.parentElement;
     }
 
@@ -41,10 +46,8 @@ function getTimelineItem(table) {
     while (
         previousTimelineItem &&
         (previousTimelineItem.children[0].className !==
-            'timeline-comment-wrapper js-comment-container' ||
-            !previousTimelineItem.querySelector(
-                'div.timeline-comment.current-user > div.timeline-comment-header > span'
-            ))
+            TIMELINE_ITEM_FIRST_CHILD ||
+            !previousTimelineItem.querySelector(TIMELINE_ITEM_AUTHOR))
     ) {
         previousTimelineItem = previousTimelineItem.previousElementSibling;
     }
@@ -53,10 +56,8 @@ function getTimelineItem(table) {
 }
 
 function getFailedSuite(timelineItem) {
-    const table = timelineItem.querySelector(
-        'div.unminimized-comment > div.edit-comment-hide > task-lists > table'
-    );
-    const suite = table.querySelector('tbody > tr > td > p');
+    const table = timelineItem.querySelector(TIMELINE_ITEM_TEST_SUITE);
+    const suite = table.querySelector(TIMELINE_ITEM_TEST_SUITE_CONTENT);
     return suite.textContent;
 }
 
