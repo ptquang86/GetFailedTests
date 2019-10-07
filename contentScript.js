@@ -88,4 +88,10 @@ document.body.addEventListener('click', e => {
 
     document.getElementById('new_comment_field').value =
         failedSuite + ' - filter ' + failedTests;
+
+    // enable button Comment
+    const buttonComment = document.querySelector(
+        '.discussion-timeline-actions > .timeline-new-comment #partial-new-comment-form-actions button.btn-primary'
+    );
+    buttonComment.removeAttribute('disabled');
 });
