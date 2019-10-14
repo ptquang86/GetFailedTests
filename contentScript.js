@@ -1,97 +1,196 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 'use strict';
 
-const FAILED_TYPES = ['UNSTABLE', 'FAILED', 'ABORTED'];
+// == Selectors
 
-const TIMELINE_ITEM =
-    'js-timeline-item js-timeline-progressive-focus-container';
+const TIMELINE_ITEM = '.js-timeline-item';
 const TIMELINE_ITEM_AUTHOR =
-    'div.timeline-comment.current-user > div.timeline-comment-header > span';
-const TIMELINE_ITEM_FIRST_CHILD = 'TimelineItem js-comment-container';
+    'div.timeline-comment > div.timeline-comment-header > h3.timeline-comment-header-text > strong > a.author';
 const TIMELINE_ITEM_TEST_SUITE =
-    'div.unminimized-comment > div.edit-comment-hide > task-lists > table';
-const TIMELINE_ITEM_TEST_SUITE_CONTENT = 'tbody > tr > td > p';
+    'div.unminimized-comment > div.edit-comment-hide > task-lists > table > tbody > tr > td > p';
 
-function getTable(e) {
-    let table = e.target;
-    while (table && table.tagName !== 'TABLE') {
-        table = table.parentElement;
-    }
-    return table;
-}
+const TEXTAREA_COMMENT_ID = 'new_comment_field';
+const BUTTON_COMMENT =
+    '.discussion-timeline-actions > .timeline-new-comment #partial-new-comment-form-actions button.btn-primary';
 
-function getFailedTests(table) {
-    const children = table.querySelector('tbody').children;
-    const failedTests = [];
-    for (let index = 0; index < children.length; index++) {
-        const columns = children.item(index).children;
-        // 0: name, 1: status
-        if (FAILED_TYPES.indexOf(columns.item(1).textContent) !== -1) {
-            failedTests.push(columns.item(0).textContent);
+const Utils = {
+    SYSTEM_IDS: ['yenkins', 'gdgate'],
+    isGrapheneTest: function(table) {
+        const firstColumn = table.querySelector('thead > tr > th');
+
+        // Graphene  is 'Test'  | 'Status' | 'Duration' | Test link
+        // Test-cafe is 'Suite' | 'Test'
+
+        return firstColumn.textContent === 'Test';
+    },
+    isSystemComment: function(timelineItem) {
+        const authorComponent = timelineItem.querySelector(
+            TIMELINE_ITEM_AUTHOR
+        );
+        return (
+            !authorComponent ||
+            Utils.SYSTEM_IDS.includes(authorComponent.textContent)
+        );
+    },
+    getResultTable: function(e) {
+        const table = e.target.closest('table');
+        return table;
+    },
+    getTimelineItem: function(table) {
+        const timelineItem = table.closest(TIMELINE_ITEM);
+        return timelineItem;
+    },
+    getTimelineItemWithTestComment: function(timelineItem) {
+        let previousTimelineItem = timelineItem.previousElementSibling;
+        while (
+            previousTimelineItem &&
+            Utils.isSystemComment(previousTimelineItem)
+        ) {
+            previousTimelineItem = previousTimelineItem.previousElementSibling;
         }
+
+        return previousTimelineItem;
     }
-    return failedTests.join(',');
-}
+};
 
-function getTimelineItem(table) {
-    let timelineItem = table.parentElement;
-    while (timelineItem && timelineItem.className !== TIMELINE_ITEM) {
-        timelineItem = timelineItem.parentElement;
+const Graphene = {
+    COLUMN_NAME_INDEX: 0,
+    COLUMN_STATUS_INDEX: 1,
+    FAILED_TYPES: ['UNSTABLE', 'FAILED', 'ABORTED'],
+    getFailedTests: function(table) {
+        const rows = table.querySelectorAll('tbody > tr');
+        const failedTests = [];
+        for (let index = 0; index < rows.length; index++) {
+            const row = rows[index];
+            const columns = row.children;
+            if (
+                Graphene.FAILED_TYPES.includes(
+                    columns[Graphene.COLUMN_STATUS_INDEX].textContent
+                )
+            ) {
+                failedTests.push(
+                    columns[Graphene.COLUMN_NAME_INDEX].textContent
+                );
+            }
+        }
+        return failedTests.join(',');
+    },
+    getFailedTestSuite: function(table) {
+        const timelineItem = Utils.getTimelineItem(table);
+        if (!timelineItem) {
+            return;
+        }
+
+        const timelineItemWithTestComment = Utils.getTimelineItemWithTestComment(
+            timelineItem
+        );
+        if (!timelineItemWithTestComment) {
+            return;
+        }
+
+        const testCommentComponent = timelineItemWithTestComment.querySelector(
+            TIMELINE_ITEM_TEST_SUITE
+        );
+        if (!testCommentComponent) {
+            return;
+        }
+
+        let failedSuite = testCommentComponent.textContent;
+        const filterIndex = failedSuite.indexOf(' - filter ');
+        if (filterIndex !== -1) {
+            failedSuite = failedSuite.substr(0, filterIndex);
+        }
+
+        return failedSuite;
+    },
+    getTestComment: function(table) {
+        const failedTests = Graphene.getFailedTests(table);
+        if (!failedTests) {
+            return;
+        }
+
+        const failedSuite = Graphene.getFailedTestSuite(table);
+        if (!failedSuite) {
+            return;
+        }
+
+        return failedSuite + ' - filter ' + failedTests;
     }
+};
 
-    let previousTimelineItem = timelineItem.previousElementSibling;
-    while (
-        previousTimelineItem &&
-        (previousTimelineItem.children[0].className !==
-            TIMELINE_ITEM_FIRST_CHILD ||
-            !previousTimelineItem.querySelector(TIMELINE_ITEM_AUTHOR))
-    ) {
-        previousTimelineItem = previousTimelineItem.previousElementSibling;
+const TestCafe = {
+    COLUMN_SUITE_NAME_INDEX: 0,
+    COLUMN_TEST_NAME_INDEX: 1,
+    getFailedTestsAndSuites: function(table) {
+        const rows = table.querySelectorAll('tbody > tr');
+        const failedSuites = [];
+        const failedTests = [];
+        for (let index = 0; index < rows.length; index++) {
+            const row = rows[index];
+            const columns = row.children;
+
+            const failedSuite =
+                '"' +
+                columns[TestCafe.COLUMN_SUITE_NAME_INDEX].textContent +
+                '"';
+            if (!failedSuites.includes(failedSuite)) {
+                failedSuites.push(failedSuite);
+            }
+
+            let failedTest =
+                '"' +
+                columns[TestCafe.COLUMN_TEST_NAME_INDEX].textContent +
+                '"';
+            failedTests.push(failedTest);
+        }
+        return {
+            failedSuiteCount: failedSuites.length,
+            failedSuites: failedSuites.join(','),
+            failedTests: failedTests.join(',')
+        };
+    },
+    getTestComment: function(table) {
+        const {
+            failedSuiteCount,
+            failedSuites,
+            failedTests
+        } = TestCafe.getFailedTestsAndSuites(table);
+        if (failedSuiteCount === 0 || !failedTests) {
+            return;
+        }
+
+        // run failed tests again if there is only one failed suite
+        if (failedSuiteCount === 1) {
+            return 'extended test - testcafe - filter ' + failedTests;
+        }
+
+        // run the failed suites again if there are many failed suites
+        return 'extended test - testcafe - suite ' + failedSuites;
     }
+};
 
-    return previousTimelineItem;
-}
-
-function getFailedSuite(timelineItem) {
-    const table = timelineItem.querySelector(TIMELINE_ITEM_TEST_SUITE);
-    const suite = table.querySelector(TIMELINE_ITEM_TEST_SUITE_CONTENT);
-    return suite.textContent;
-}
-
-document.body.addEventListener('click', e => {
-    const table = getTable(e);
-    if (!table || table.className !== '') {
+function onClick(e) {
+    const table = Utils.getResultTable(e);
+    // result table must have thead
+    if (!table || !table.querySelector('thead')) {
         return;
     }
 
-    const failedTests = getFailedTests(table);
-    if (!failedTests) {
+    let testComment;
+    if (Utils.isGrapheneTest(table)) {
+        testComment = Graphene.getTestComment(table);
+    } else {
+        testComment = TestCafe.getTestComment(table);
+    }
+
+    if (!testComment) {
         return;
     }
 
-    const timelineItem = getTimelineItem(table);
-    if (!timelineItem) {
-        return;
-    }
-
-    let failedSuite = getFailedSuite(timelineItem);
-    if (!failedSuite) {
-        return;
-    }
-
-    if (failedSuite.indexOf(' - filter ') !== -1) {
-        failedSuite = failedSuite.substr(0, failedSuite.indexOf(' - filter '));
-    }
-
-    document.getElementById('new_comment_field').value =
-        failedSuite + ' - filter ' + failedTests;
+    document.getElementById(TEXTAREA_COMMENT_ID).value = testComment;
 
     // enable button Comment
-    const buttonComment = document.querySelector(
-        '.discussion-timeline-actions > .timeline-new-comment #partial-new-comment-form-actions button.btn-primary'
-    );
+    const buttonComment = document.querySelector(BUTTON_COMMENT);
     buttonComment.removeAttribute('disabled');
-});
+}
+
+document.body.addEventListener('click', onClick);
