@@ -193,4 +193,13 @@ function onClick(e) {
     buttonComment.removeAttribute('disabled');
 }
 
-document.body.addEventListener('click', onClick);
+// listen to event from background.js
+// https://developer.chrome.com/extensions/messaging
+chrome.runtime.onMessage.addListener(function(message, _sender, callback) {
+    if (message.command === 'Get-Failed-Tests-Enabled') {
+        document.body.addEventListener('click', onClick);
+    } else if (message.command === 'Get-Failed-Tests-Disabled') {
+        document.body.removeEventListener('click', onClick);
+    }
+    callback({ status: 'ok' });
+});

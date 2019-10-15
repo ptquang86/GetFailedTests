@@ -1,8 +1,16 @@
 {
+    "description": "Get Failed Graphene/Test-cafe Tests",
+    "manifest_version": 2,
     "name": "Get Failed Tests",
     "version": "1.0",
-    "description": "Get Failed Graphene Tests",
-    "manifest_version": 2,
+
+    "background": {
+        "persistent": false,
+        "scripts": ["background.js"]
+    },
+    "browser_action": {
+        "default_title": "Get Failed Tests: Click on the result table to get the failed Graphene/Test-cafe tests"
+    },
     "content_scripts": [
         {
             "matches": ["https://github.com/gooddata/*/pull/*"],
