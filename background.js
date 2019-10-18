@@ -1,5 +1,6 @@
 ('use strict');
 
+let currentTabId;
 let isEnabled = false;
 
 function updateBadge() {
@@ -16,25 +17,35 @@ function updateBadge() {
     }
 }
 
-// Called when the user clicks on the browser action.
-chrome.browserAction.onClicked.addListener(function(tab) {
-    isEnabled = !isEnabled;
-
-    // send message to contentScript.js
-    // https://developer.chrome.com/extensions/messaging
-    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-        chrome.tabs.sendMessage(
-            tabs[0].id,
-            {
-                command: isEnabled
-                    ? 'Get-Failed-Tests-Enabled'
-                    : 'Get-Failed-Tests-Disabled'
-            },
-            function(response) {
-                if (response.status === 'ok') {
-                    updateBadge();
-                }
-            }
-        );
+// send message to contentScript.js
+// https://developer.chrome.com/extensions/messaging
+// https://developer.chrome.com/extensions/examples/api/messaging/timer/popup.js
+function sendMessageToContentScript() {
+    var port = chrome.tabs.connect(currentTabId);
+    port.postMessage({
+        command: isEnabled
+            ? 'Get-Failed-Tests-Enabled'
+            : 'Get-Failed-Tests-Disabled'
     });
+    updateBadge();
+}
+
+// toggle GFTs on icon clicked
+// Called when the user clicks on the browser action.
+chrome.browserAction.onClicked.addListener(function(_tab) {
+    isEnabled = !isEnabled;
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        currentTabId = tabs[0].id;
+        sendMessageToContentScript();
+    });
+});
+
+// deactive GFTs on tab switched
+// https://developer.chrome.com/extensions/tabs#event-onActivated
+chrome.tabs.onActivated.addListener(function(activeInfo) {
+    if (isEnabled) {
+        isEnabled = false;
+        sendMessageToContentScript();
+        currentTabId = activeInfo.tabId;
+    }
 });

@@ -1,19 +1,35 @@
 'use strict';
 
-// == Selectors
-
-const TIMELINE_ITEM = '.js-timeline-item';
-const TIMELINE_ITEM_AUTHOR =
-    'div.timeline-comment > div.timeline-comment-header > h3.timeline-comment-header-text > strong > a.author';
-const TIMELINE_ITEM_TEST_SUITE =
-    'div.unminimized-comment > div.edit-comment-hide > task-lists > table > tbody > tr > td > p';
-
-const TEXTAREA_COMMENT_ID = 'new_comment_field';
-const BUTTON_COMMENT =
-    '.discussion-timeline-actions > .timeline-new-comment #partial-new-comment-form-actions button.btn-primary';
+const TIMELINE_ITEM_ROOT = document.querySelector(
+    '#discussion_bucket .js-discussion'
+);
 
 const Utils = {
     SYSTEM_IDS: ['yenkins', 'gdgate'],
+    BUTTON_COMMENT:
+        '.discussion-timeline-actions > .timeline-new-comment #partial-new-comment-form-actions button.btn-primary',
+    BUTTON_TEST: 'gft-button-test',
+    TEXTAREA_COMMENT_ID: 'new_comment_field',
+    TIMELINE_ITEM: '.js-timeline-item',
+    TIMELINE_ITEM_AUTHOR:
+        'div.timeline-comment > div.timeline-comment-header > h3.timeline-comment-header-text > strong > a.author',
+
+    addTestButton: function(resultTable, testComment) {
+        var buttonTest = document.createElement('button');
+        buttonTest.className = `${Utils.BUTTON_TEST} State State--green`;
+        buttonTest.dataset.testComment = testComment;
+        buttonTest.innerHTML = 'Run failed tests again';
+        buttonTest.addEventListener('click', Utils.runFailedTests);
+        resultTable.parentElement.appendChild(buttonTest);
+    },
+
+    removeTestButtons: function() {
+        const buttons = document.querySelectorAll(`.${Utils.BUTTON_TEST}`);
+        for (const button of buttons) {
+            button.remove();
+        }
+    },
+
     isGrapheneTest: function(table) {
         const firstColumn = table.querySelector('thead > tr > th');
 
@@ -22,33 +38,92 @@ const Utils = {
 
         return firstColumn.textContent === 'Test';
     },
+
     isSystemComment: function(timelineItem) {
         const authorComponent = timelineItem.querySelector(
-            TIMELINE_ITEM_AUTHOR
+            Utils.TIMELINE_ITEM_AUTHOR
         );
         return (
             !authorComponent ||
             Utils.SYSTEM_IDS.includes(authorComponent.textContent)
         );
     },
-    getResultTable: function(e) {
-        const table = e.target.closest('table');
-        return table;
-    },
+
     getTimelineItem: function(table) {
-        const timelineItem = table.closest(TIMELINE_ITEM);
+        const timelineItem = table.closest(Utils.TIMELINE_ITEM);
         return timelineItem;
     },
+
     getTimelineItemWithTestComment: function(timelineItem) {
         let previousTimelineItem = timelineItem.previousElementSibling;
+        let testCommentComponent =
+            previousTimelineItem &&
+            previousTimelineItem.querySelector(
+                Graphene.TIMELINE_ITEM_TEST_SUITE
+            );
+
         while (
             previousTimelineItem &&
-            Utils.isSystemComment(previousTimelineItem)
+            (Utils.isSystemComment(previousTimelineItem) ||
+                !testCommentComponent ||
+                !testCommentComponent.textContent.startsWith('extended test'))
         ) {
             previousTimelineItem = previousTimelineItem.previousElementSibling;
+            testCommentComponent =
+                previousTimelineItem &&
+                previousTimelineItem.querySelector(
+                    Graphene.TIMELINE_ITEM_TEST_SUITE
+                );
         }
 
         return previousTimelineItem;
+    },
+
+    getTestResultTable: function(timelineItem) {
+        const timelineItemContent = timelineItem.querySelector(
+            '.TimelineItem > .TimelineItem-body > .timeline-comment'
+        );
+        const thead = timelineItemContent
+            ? timelineItemContent.querySelector('table > thead')
+            : null;
+        return thead ? thead.parentElement : null;
+    },
+
+    runFailedTests: function(e) {
+        const commentBox = document.getElementById(Utils.TEXTAREA_COMMENT_ID);
+        commentBox.value = e.target.dataset.testComment;
+
+        const buttonComment = document.querySelector(Utils.BUTTON_COMMENT);
+        buttonComment.removeAttribute('disabled');
+        buttonComment.click();
+    },
+
+    checkForFailedTests: function(timelineItem) {
+        if (!Utils.isSystemComment(timelineItem)) {
+            return;
+        }
+
+        const resultTable = Utils.getTestResultTable(timelineItem);
+        if (!resultTable) {
+            return;
+        }
+
+        let testComment;
+        if (Utils.isGrapheneTest(resultTable)) {
+            testComment = Graphene.getTestComment(resultTable);
+        } else {
+            testComment = TestCafe.getTestComment(resultTable);
+        }
+
+        if (testComment) {
+            Utils.addTestButton(resultTable, testComment);
+        }
+    },
+
+    scanForFailedTests: function() {
+        for (const timelineItem of TIMELINE_ITEM_ROOT.children) {
+            Utils.checkForFailedTests(timelineItem);
+        }
     }
 };
 
@@ -56,6 +131,9 @@ const Graphene = {
     COLUMN_NAME_INDEX: 0,
     COLUMN_STATUS_INDEX: 1,
     FAILED_TYPES: ['UNSTABLE', 'FAILED', 'ABORTED'],
+    TIMELINE_ITEM_TEST_SUITE:
+        'div.unminimized-comment > div.edit-comment-hide > task-lists > table > tbody > tr > td > p',
+
     getFailedTests: function(table) {
         const rows = table.querySelectorAll('tbody > tr');
         const failedTests = [];
@@ -74,6 +152,7 @@ const Graphene = {
         }
         return failedTests.join(',');
     },
+
     getFailedTestSuite: function(table) {
         const timelineItem = Utils.getTimelineItem(table);
         if (!timelineItem) {
@@ -88,7 +167,7 @@ const Graphene = {
         }
 
         const testCommentComponent = timelineItemWithTestComment.querySelector(
-            TIMELINE_ITEM_TEST_SUITE
+            Graphene.TIMELINE_ITEM_TEST_SUITE
         );
         if (!testCommentComponent) {
             return;
@@ -102,6 +181,7 @@ const Graphene = {
 
         return failedSuite;
     },
+
     getTestComment: function(table) {
         const failedTests = Graphene.getFailedTests(table);
         if (!failedTests) {
@@ -120,6 +200,7 @@ const Graphene = {
 const TestCafe = {
     COLUMN_SUITE_NAME_INDEX: 0,
     COLUMN_TEST_NAME_INDEX: 1,
+
     getFailedTestsAndSuites: function(table) {
         const rows = table.querySelectorAll('tbody > tr');
         const failedSuites = [];
@@ -148,6 +229,7 @@ const TestCafe = {
             failedTests: failedTests.join(',')
         };
     },
+
     getTestComment: function(table) {
         const {
             failedSuiteCount,
@@ -168,38 +250,43 @@ const TestCafe = {
     }
 };
 
-function onClick(e) {
-    const table = Utils.getResultTable(e);
-    // result table must have thead
-    if (!table || !table.querySelector('thead')) {
-        return;
-    }
+// ==
 
-    let testComment;
-    if (Utils.isGrapheneTest(table)) {
-        testComment = Graphene.getTestComment(table);
-    } else {
-        testComment = TestCafe.getTestComment(table);
-    }
+const observer = new MutationObserver(watcherCallback);
 
-    if (!testComment) {
-        return;
-    }
-
-    document.getElementById(TEXTAREA_COMMENT_ID).value = testComment;
-
-    // enable button Comment
-    const buttonComment = document.querySelector(BUTTON_COMMENT);
-    buttonComment.removeAttribute('disabled');
+function startWatcher() {
+    const config = { childList: true };
+    observer.observe(TIMELINE_ITEM_ROOT, config);
 }
 
-// listen to event from background.js
-// https://developer.chrome.com/extensions/messaging
-chrome.runtime.onMessage.addListener(function(message, _sender, callback) {
-    if (message.command === 'Get-Failed-Tests-Enabled') {
-        document.body.addEventListener('click', onClick);
-    } else if (message.command === 'Get-Failed-Tests-Disabled') {
-        document.body.removeEventListener('click', onClick);
+function stopWatcher() {
+    observer.disconnect();
+}
+
+function watcherCallback(mutationsList, _observer) {
+    for (let mutation of mutationsList) {
+        for (const addedNode of mutation.addedNodes) {
+            if (
+                addedNode.classList &&
+                addedNode.classList.contains('js-timeline-item')
+            ) {
+                Utils.checkForFailedTests(addedNode);
+            }
+        }
     }
-    callback({ status: 'ok' });
+}
+
+// listen to message from background.js
+// https://developer.chrome.com/extensions/messaging
+// https://developer.chrome.com/extensions/examples/api/messaging/timer/page.js
+chrome.runtime.onConnect.addListener(function(port) {
+    port.onMessage.addListener(function(message) {
+        if (message.command === 'Get-Failed-Tests-Enabled') {
+            Utils.scanForFailedTests();
+            startWatcher();
+        } else if (message.command === 'Get-Failed-Tests-Disabled') {
+            stopWatcher();
+            Utils.removeTestButtons();
+        }
+    });
 });
