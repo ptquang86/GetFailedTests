@@ -95,7 +95,7 @@ const Utils = {
 
         const buttonComment = document.querySelector(Utils.BUTTON_COMMENT);
         buttonComment.removeAttribute('disabled');
-        buttonComment.click();
+        // buttonComment.click();
     },
 
     checkForFailedTests: function(timelineItem) {
