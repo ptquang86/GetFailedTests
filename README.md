@@ -8,6 +8,6 @@ Usage:
 2. Go to chrome://extensions/ => enable "Developer mode" => click button "Load unpacked" => Select "GetFailedTests" folder
 3. Open github PR tab.
 4. Click GetFailedTests icon on the Chrome toolbar to enable.
-5. Click on the Graphene/Test-cafe test result table.
-6. Scroll down to the bottom of the page, the failed tests are filled into the comment box.
+5. There will be a button 'Run failed tests again' below the test result table (if there is any failed test).
+6. Click on the button 'Run failed tests again' to run failed test again.
 7. Click GetFailedTests icon on the Chrome toolbar again to disable.
