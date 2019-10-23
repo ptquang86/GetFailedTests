@@ -254,6 +254,7 @@ const TestCafe = {
 
 const observer = new MutationObserver(watcherCallback);
 
+// watch for DOM changes
 function startWatcher() {
     const config = { childList: true };
     observer.observe(TIMELINE_ITEM_ROOT, config);

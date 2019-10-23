@@ -40,12 +40,22 @@ chrome.browserAction.onClicked.addListener(function(_tab) {
     });
 });
 
-// deactive GFTs on tab switched
-// https://developer.chrome.com/extensions/tabs#event-onActivated
-chrome.tabs.onActivated.addListener(function(activeInfo) {
+function deactiveGetFailedTests(tabId) {
     if (isEnabled) {
         isEnabled = false;
         sendMessageToContentScript();
-        currentTabId = activeInfo.tabId;
+        currentTabId = tabId;
     }
+}
+
+// deactive GFTs on tab switched
+// https://developer.chrome.com/extensions/tabs#event-onActivated
+chrome.tabs.onActivated.addListener(function(activeInfo) {
+    deactiveGetFailedTests(activeInfo.tabId);
+});
+
+// deactive GFTs on tab reload
+// https://developer.chrome.com/extensions/tabs#event-onUpdated
+chrome.tabs.onUpdated.addListener(function(tabId) {
+    deactiveGetFailedTests(tabId);
 });
