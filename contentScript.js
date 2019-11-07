@@ -14,12 +14,18 @@ const Utils = {
     TIMELINE_ITEM_AUTHOR:
         'div.timeline-comment > div.timeline-comment-header > h3.timeline-comment-header-text > strong > a.author',
 
-    addTestButton: function(resultTable, testComment) {
+    addTestButton: function(resultTable, testComment, autoRun) {
         var buttonTest = document.createElement('button');
         buttonTest.className = `${Utils.BUTTON_TEST} State State--green`;
         buttonTest.dataset.testComment = testComment;
-        buttonTest.innerHTML = 'Run failed tests again';
-        buttonTest.addEventListener('click', Utils.runFailedTests);
+        buttonTest.innerHTML = autoRun
+            ? 'Run failed tests again'
+            : 'Get failed tests';
+        buttonTest.addEventListener('click', e =>
+            Utils.getAutoRunConfig(items =>
+                Utils.runFailedTests(e, items.autoRun)
+            )
+        );
         resultTable.parentElement.appendChild(buttonTest);
     },
 
@@ -46,6 +52,15 @@ const Utils = {
         return (
             !authorComponent ||
             Utils.SYSTEM_IDS.includes(authorComponent.textContent)
+        );
+    },
+
+    getAutoRunConfig: function(callback) {
+        chrome.storage.sync.get(
+            {
+                autoRun: false
+            },
+            callback
         );
     },
 
@@ -89,13 +104,13 @@ const Utils = {
         return thead ? thead.parentElement : null;
     },
 
-    runFailedTests: function(e) {
+    runFailedTests: function(e, autoRun) {
         const commentBox = document.getElementById(Utils.TEXTAREA_COMMENT_ID);
         commentBox.value = e.target.dataset.testComment;
 
         const buttonComment = document.querySelector(Utils.BUTTON_COMMENT);
         buttonComment.removeAttribute('disabled');
-        // buttonComment.click();
+        autoRun && buttonComment.click();
     },
 
     checkForFailedTests: function(timelineItem) {
@@ -116,7 +131,9 @@ const Utils = {
         }
 
         if (testComment) {
-            Utils.addTestButton(resultTable, testComment);
+            Utils.getAutoRunConfig(items =>
+                Utils.addTestButton(resultTable, testComment, items.autoRun)
+            );
         }
     },
 
