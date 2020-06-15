@@ -1,0 +1,10 @@
+{
+    "dependencies": {},
+    "devDependencies": {
+        "prettier": "^2.0.5"
+    },
+    "scripts": {
+        "prettier-check": "prettier --check './**/*.{ts,js,tsx,jsx,json,scss,md,yaml,html}'",
+        "prettier-write": "prettier --write './**/*.{ts,js,tsx,jsx,json,scss,md,yaml,html}'"
+    }
+}

@@ -1,18 +1,18 @@
-('use strict');
+("use strict");
 
 let currentTabId;
 let isEnabled = false;
 
 function updateBadge() {
     if (isEnabled) {
-        chrome.browserAction.setBadgeText({ text: 'ON' });
+        chrome.browserAction.setBadgeText({ text: "ON" });
         chrome.browserAction.setBadgeBackgroundColor({
-            color: '#c62828'
+            color: "#c62828",
         });
     } else {
-        chrome.browserAction.setBadgeText({ text: '' });
+        chrome.browserAction.setBadgeText({ text: "" });
         chrome.browserAction.setBadgeBackgroundColor({
-            color: '#e0e0e0'
+            color: "#e0e0e0",
         });
     }
 }
@@ -23,18 +23,16 @@ function updateBadge() {
 function sendMessageToContentScript() {
     var port = chrome.tabs.connect(currentTabId);
     port.postMessage({
-        command: isEnabled
-            ? 'Get-Failed-Tests-Enabled'
-            : 'Get-Failed-Tests-Disabled'
+        command: isEnabled ? "Get-Failed-Tests-Enabled" : "Get-Failed-Tests-Disabled",
     });
     updateBadge();
 }
 
 // toggle GFTs on icon clicked
 // Called when the user clicks on the browser action.
-chrome.browserAction.onClicked.addListener(function(_tab) {
+chrome.browserAction.onClicked.addListener(function (_tab) {
     isEnabled = !isEnabled;
-    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         currentTabId = tabs[0].id;
         sendMessageToContentScript();
     });
@@ -50,12 +48,12 @@ function deactiveGetFailedTests(tabId) {
 
 // deactive GFTs on tab switched
 // https://developer.chrome.com/extensions/tabs#event-onActivated
-chrome.tabs.onActivated.addListener(function(activeInfo) {
+chrome.tabs.onActivated.addListener(function (activeInfo) {
     deactiveGetFailedTests(activeInfo.tabId);
 });
 
 // deactive GFTs on tab reload
 // https://developer.chrome.com/extensions/tabs#event-onUpdated
-chrome.tabs.onUpdated.addListener(function(tabId) {
+chrome.tabs.onUpdated.addListener(function (tabId) {
     deactiveGetFailedTests(tabId);
 });

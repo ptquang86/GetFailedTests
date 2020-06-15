@@ -1,14 +1,14 @@
 // Saves options to chrome.storage
 function save_options() {
-    var autoRun = document.getElementById('autoRun').checked;
+    var autoRun = document.getElementById("autoRun").checked;
     chrome.storage.sync.set(
         {
-            autoRun: autoRun
+            autoRun: autoRun,
         },
-        function() {
-            var status = document.getElementById('status');
-            status.textContent = 'Options saved!';
-        }
+        function () {
+            var status = document.getElementById("status");
+            status.textContent = "Options saved!";
+        },
     );
 }
 
@@ -17,13 +17,13 @@ function save_options() {
 function restore_options() {
     chrome.storage.sync.get(
         {
-            autoRun: false
+            autoRun: false,
         },
-        function(items) {
-            document.getElementById('autoRun').checked = items.autoRun;
-        }
+        function (items) {
+            document.getElementById("autoRun").checked = items.autoRun;
+        },
     );
 }
 
-document.addEventListener('DOMContentLoaded', restore_options);
-document.getElementById('save').addEventListener('click', save_options);
+document.addEventListener("DOMContentLoaded", restore_options);
+document.getElementById("save").addEventListener("click", save_options);
