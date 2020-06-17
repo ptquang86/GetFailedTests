@@ -112,6 +112,7 @@ const Utils = {
         }
 
         if (testComment) {
+            Utils.removeTestButtons();
             Utils.getAutoRunConfig((items) => Utils.addTestButton(resultTable, testComment, items.autoRun));
         }
     },
