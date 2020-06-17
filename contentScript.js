@@ -252,17 +252,23 @@ function watcherCallback(mutationsList, _observer) {
     }
 }
 
+function onMessageReceived(message) {
+    if (message.command === "Get-Failed-Tests-Enabled") {
+        Utils.scanForFailedTests();
+        startWatcher();
+    } else if (message.command === "Get-Failed-Tests-Disabled") {
+        stopWatcher();
+        Utils.removeTestButtons();
+    }
+}
+
 // listen to message from background.js
 // https://developer.chrome.com/extensions/messaging
 // https://developer.chrome.com/extensions/examples/api/messaging/timer/page.js
 chrome.runtime.onConnect.addListener(function (port) {
-    port.onMessage.addListener(function (message) {
-        if (message.command === "Get-Failed-Tests-Enabled") {
-            Utils.scanForFailedTests();
-            startWatcher();
-        } else if (message.command === "Get-Failed-Tests-Disabled") {
-            stopWatcher();
-            Utils.removeTestButtons();
-        }
-    });
+    port.onMessage.addListener(onMessageReceived);
 });
+
+// listen to message from popup.js
+// https://developer.chrome.com/extensions/messaging
+chrome.runtime.onMessage.addListener(onMessageReceived);
